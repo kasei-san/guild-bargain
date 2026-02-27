@@ -14,7 +14,13 @@ MAX_PAGES = 2
 
 
 def fetch_card_prices(card_name: str) -> list[dict]:
-    """カード名から価格情報を全ページ取得する"""
+    """カード名から価格情報を全ページ取得する（キャッシュ対応）"""
+    from cache import get_cached, set_cache
+
+    cached = get_cached(card_name)
+    if cached is not None:
+        return cached
+
     encoded = urllib.parse.quote(card_name, safe="")
     base_url = BASE_URL.format(encoded)
     all_offers = []
@@ -30,6 +36,7 @@ def fetch_card_prices(card_name: str) -> list[dict]:
         if page < MAX_PAGES:
             time.sleep(REQUEST_INTERVAL)
 
+    set_cache(card_name, all_offers)
     return all_offers
 
 
@@ -92,18 +99,22 @@ def _parse_price_table(html: str) -> list[dict]:
 
 def fetch_all_cards(card_names: list[str]) -> dict[str, list[dict]]:
     """複数カードの価格情報をまとめて取得する"""
+    from cache import get_cached
+
     all_prices = {}
     for i, name in enumerate(card_names):
-        print(f"  [{i + 1}/{len(card_names)}] {name} ...", end=" ", flush=True)
+        print(f"  [{i + 1}/{len(card_names)}] {name} :", end=" ", flush=True)
         try:
+            cached = get_cached(name) is not None
             prices = fetch_card_prices(name)
             all_prices[name] = prices
-            print(f"{len(prices)} 件")
+            hit = "キャッシュヒット! → " if cached else ""
+            print(f"{hit}{len(prices)} 件")
         except Exception as e:
             print(f"エラー: {e}")
             all_prices[name] = []
 
-        if i < len(card_names) - 1:
+        if i < len(card_names) - 1 and not cached:
             time.sleep(REQUEST_INTERVAL)
 
     return all_prices

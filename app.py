@@ -3,10 +3,13 @@
 import streamlit as st
 import pandas as pd
 
+from cache import cleanup_expired
 from scraper import fetch_all_cards
 from solver import load_shipping_rules, solve
 from normalizer import _normalize_batch, BATCH_SIZE
 from advisor import generate_advice
+
+cleanup_expired()
 
 st.set_page_config(page_title="MTG 最安購入オプティマイザー", layout="wide")
 st.title("MTG 最安購入オプティマイザー")
@@ -128,17 +131,21 @@ if st.session_state.run_optimize:
             st.write(f"[{i + 1}/{len(card_names)}] {name}")
             try:
                 from scraper import fetch_card_prices
+                from cache import get_cached
                 import time
 
+                cached = get_cached(name) is not None
                 prices = fetch_card_prices(name)
                 price_data[name] = prices
-                st.write(f"  → {len(prices)} 件")
+                hit = "キャッシュヒット! → " if cached else ""
+                st.write(f"  → {hit}{len(prices)} 件")
             except Exception as e:
                 st.write(f"  → エラー: {e}")
                 price_data[name] = []
+                cached = False
 
             progress.progress((i + 1) / len(card_names))
-            if i < len(card_names) - 1:
+            if i < len(card_names) - 1 and not cached:
                 time.sleep(1.5)
 
         status.update(label="価格情報の取得完了", state="complete")

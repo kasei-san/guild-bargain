@@ -4,6 +4,7 @@ import argparse
 import json
 import sys
 
+from cache import cleanup_expired
 from normalizer import normalize_card_names
 from scraper import fetch_all_cards
 from solver import load_shipping_rules, solve
@@ -28,7 +29,8 @@ def main():
     )
     args = parser.parse_args()
 
-    # Step 0: 入力読み込み
+    # Step 0: 入力読み込み・キャッシュクリーンアップ
+    cleanup_expired()
     card_names = load_card_list(args.cards)
     shipping_rules = load_shipping_rules(args.shops)
     print(f"カード {len(card_names)} 枚の最安購入プランを計算します\n")
