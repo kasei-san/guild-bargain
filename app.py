@@ -1,6 +1,7 @@
 """Streamlit Web UI for MTG Card Purchase Optimizer"""
 
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 
 from cache import cleanup_expired
@@ -170,7 +171,10 @@ if st.session_state.run_optimize:
     # --- 結果表示 ---
     st.divider()
     st.header("最適購入プラン", anchor="result")
-    st.html("<script>document.getElementById('result').scrollIntoView({behavior:'smooth'})</script>")
+    components.html(
+        "<script>window.parent.document.getElementById('result').scrollIntoView({behavior:'smooth'})</script>",
+        height=0,
+    )
 
     col1, col2, col3 = st.columns(3)
     col1.metric("合計金額", f"¥{result['total_cost']:,}")
