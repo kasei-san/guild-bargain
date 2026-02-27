@@ -100,6 +100,10 @@ def main():
             print(f"  - {item['card']}  {item['price']}円  ({item['set']}, {item['condition']})")
         print()
 
+    print("※ 価格データは Wisdom Guild 経由の情報です。実際の在庫・価格はショップ側で変動している場合があります。")
+    print("  購入前に各ショップの販売ページで最新情報を確認してください。")
+    print()
+
     # Step 4: Claude CLI で説明・レコメンド
     if not args.no_advice:
         print("== Step 4: アドバイスを生成中 ==\n")
