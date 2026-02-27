@@ -1,0 +1,8 @@
+{
+  "晴れる屋": { "shipping": 180, "free_threshold": 30000 },
+  "カードショップBIGRED": { "shipping": 200, "free_threshold": null },
+  "トレトク": { "shipping": 200, "free_threshold": 5000 },
+  "カードラッシュ": { "shipping": 180, "free_threshold": 5000 },
+  "駿河屋": { "shipping": 440, "free_threshold": 1500 },
+  "_default": { "shipping": 400, "free_threshold": null }
+}
