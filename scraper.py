@@ -10,15 +10,27 @@ from bs4 import BeautifulSoup
 BASE_URL = "https://wonder.wisdom-guild.net/price/{}/?stock_gt=1"
 HEADERS = {"User-Agent": "Mozilla/5.0"}
 REQUEST_INTERVAL = 1.5  # 秒
+MAX_PAGES = 2
 
 
 def fetch_card_prices(card_name: str) -> list[dict]:
-    """カード名から価格情報を取得する"""
+    """カード名から価格情報を全ページ取得する"""
     encoded = urllib.parse.quote(card_name, safe="")
-    url = BASE_URL.format(encoded)
-    resp = requests.get(url, headers=HEADERS, timeout=30)
-    resp.raise_for_status()
-    return _parse_price_table(resp.text)
+    base_url = BASE_URL.format(encoded)
+    all_offers = []
+
+    for page in range(1, MAX_PAGES + 1):
+        url = f"{base_url}&page={page}"
+        resp = requests.get(url, headers=HEADERS, timeout=30)
+        resp.raise_for_status()
+        offers = _parse_price_table(resp.text)
+        if not offers:
+            break
+        all_offers.extend(offers)
+        if page < MAX_PAGES:
+            time.sleep(REQUEST_INTERVAL)
+
+    return all_offers
 
 
 def _parse_price_table(html: str) -> list[dict]:
