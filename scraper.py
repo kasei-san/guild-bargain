@@ -57,6 +57,8 @@ def _parse_price_table(html: str) -> list[dict]:
             continue
 
         shop = cells[0].get_text(strip=True)
+        shop_link = cells[0].find("a")
+        shop_url = shop_link["href"] if shop_link and shop_link.get("href") else None
         price_text = cells[1].get_text(strip=True)
         card_set = cells[2].get_text(strip=True)
         language = cells[3].get_text(strip=True)
@@ -81,6 +83,7 @@ def _parse_price_table(html: str) -> list[dict]:
                 "language": language,
                 "stock": stock,
                 "condition": condition or "不明",
+                "shop_url": shop_url,
             }
         )
 

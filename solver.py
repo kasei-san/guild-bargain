@@ -126,6 +126,7 @@ def solve(
     # --- 結果の整理 ---
     plan = {}
     shop_subtotals = {}
+    shop_urls = {}
     for card, offers in price_data.items():
         for i, offer in enumerate(offers):
             if value(x[card][i]) and value(x[card][i]) > 0.5:
@@ -133,6 +134,8 @@ def solve(
                 if shop not in plan:
                     plan[shop] = []
                     shop_subtotals[shop] = 0
+                if shop not in shop_urls and offer.get("shop_url"):
+                    shop_urls[shop] = offer["shop_url"]
                 plan[shop].append(
                     {
                         "card": card,
@@ -166,4 +169,5 @@ def solve(
         "shipping_cost": total_shipping,
         "plan": plan,
         "shop_details": shop_details,
+        "shop_urls": shop_urls,
     }

@@ -4,8 +4,11 @@ import json
 import subprocess
 
 
-def normalize_card_names(card_names: list[str]) -> list[str]:
-    """カード名をMTGの正式名称に正規化する"""
+BATCH_SIZE = 10
+
+
+def _normalize_batch(card_names: list[str]) -> list[str]:
+    """1バッチ分のカード名をMTGの正式名称に正規化する"""
 
     prompt = f"""以下のMTGカード名リストを、Wisdom Guild（日本語MTGカード検索サイト）で検索可能な正式名称に正規化してください。
 
@@ -25,7 +28,7 @@ def normalize_card_names(card_names: list[str]) -> list[str]:
         ["claude", "-p", prompt],
         capture_output=True,
         text=True,
-        timeout=60,
+        timeout=120,
     )
     if result.returncode != 0:
         raise RuntimeError(f"claude CLI エラー: {result.stderr}")
@@ -46,3 +49,12 @@ def normalize_card_names(card_names: list[str]) -> list[str]:
         output = "\n".join(json_lines)
 
     return json.loads(output)
+
+
+def normalize_card_names(card_names: list[str]) -> list[str]:
+    """カード名を10枚ずつのバッチに分割して正規化する"""
+    normalized = []
+    for i in range(0, len(card_names), BATCH_SIZE):
+        batch = card_names[i : i + BATCH_SIZE]
+        normalized.extend(_normalize_batch(batch))
+    return normalized

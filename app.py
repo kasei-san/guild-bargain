@@ -5,66 +5,122 @@ import pandas as pd
 
 from scraper import fetch_all_cards
 from solver import load_shipping_rules, solve
-from normalizer import normalize_card_names
+from normalizer import _normalize_batch, BATCH_SIZE
 from advisor import generate_advice
 
 st.set_page_config(page_title="MTG 最安購入オプティマイザー", layout="wide")
 st.title("MTG 最安購入オプティマイザー")
 
-# --- サイドバー ---
-with st.sidebar:
-    st.header("オプション")
-    use_normalizer = st.checkbox("カード名を正規化する (Claude CLI)", value=False)
-    use_advisor = st.checkbox("購入アドバイスを生成する (Claude CLI)", value=False)
-    if use_normalizer or use_advisor:
-        st.caption("Claude CLI の呼び出しには時間がかかります")
+
+# --- session_state 初期化 ---
+if "card_default" not in st.session_state:
+    st.session_state.card_default = ""
+if "processing" not in st.session_state:
+    st.session_state.processing = False
+if "normalize_done" not in st.session_state:
+    st.session_state.normalize_done = False
+if "run_normalize" not in st.session_state:
+    st.session_state.run_normalize = False
+if "run_optimize" not in st.session_state:
+    st.session_state.run_optimize = False
+
+# --- 正規化完了通知 ---
+if st.session_state.normalize_done:
+    st.toast("カード名の正規化が完了しました", icon="✅")
+    st.session_state.normalize_done = False
 
 # --- 入力 ---
 card_input = st.text_area(
     "カード名を1行1枚で入力してください",
+    value=st.session_state.card_default,
     height=200,
     placeholder="例:\n稲妻\n対抗呪文\nSwords to Plowshares",
 )
 
-if st.button("最適化", type="primary", disabled=not card_input.strip()):
+# --- ボタン横並び ---
+col_opt, col_norm = st.columns(2)
+
+with col_opt:
+    buttons_disabled = st.session_state.processing or not card_input.strip()
+    optimize_clicked = st.button("最安購入チェック!!", type="primary", disabled=buttons_disabled)
+
+with col_norm:
+    normalize_clicked = st.button("カード名正規化", disabled=buttons_disabled)
+
+# --- ボタン押下時: フラグを立ててrerunし、UIを更新してから処理開始 ---
+if normalize_clicked:
+    st.session_state.processing = True
+    st.session_state.run_normalize = True
+    st.rerun()
+
+if optimize_clicked:
+    st.session_state.processing = True
+    st.session_state.run_optimize = True
+    st.rerun()
+
+# --- 正規化処理 ---
+if st.session_state.run_normalize:
+    st.session_state.run_normalize = False
+    card_names = [line.strip() for line in card_input.strip().splitlines() if line.strip()]
+    if not card_names:
+        st.error("カード名を入力してください")
+        st.session_state.processing = False
+        st.stop()
+
+    total = len(card_names)
+    with st.status(f"カード名を正規化中... (0/{total})", expanded=True) as status:
+        try:
+            normalized = []
+            for i in range(0, total, BATCH_SIZE):
+                batch = card_names[i : i + BATCH_SIZE]
+                done = min(i + BATCH_SIZE, total)
+                status.update(label=f"カード名を正規化中... ({done}/{total})")
+                st.write(f"[{done}/{total}] {', '.join(batch)}")
+                normalized.extend(_normalize_batch(batch))
+
+            changes = [
+                (orig, norm)
+                for orig, norm in zip(card_names, normalized)
+                if orig != norm
+            ]
+            if changes:
+                st.write("修正されたカード名:")
+                for orig, norm in changes:
+                    st.write(f"  {orig} → {norm}")
+            else:
+                st.write("修正なし")
+
+            unknown = [n for n in normalized if n.startswith("UNKNOWN:")]
+            if unknown:
+                st.warning(f"特定できなかったカード: {', '.join(unknown)}")
+
+            # UNKNOWNを除外してテキストエリアを書き換え
+            valid = [n for n in normalized if not n.startswith("UNKNOWN:")]
+            st.session_state.card_default = "\n".join(valid)
+            status.update(label="正規化完了", state="complete")
+        except Exception as e:
+            status.update(label="正規化エラー", state="error")
+            st.error(f"正規化エラー: {e}")
+            st.session_state.processing = False
+            st.stop()
+
+    st.session_state.processing = False
+    st.session_state.normalize_done = True
+    st.rerun()
+
+# --- 最適化処理 ---
+if st.session_state.run_optimize:
+    st.session_state.run_optimize = False
     card_names = [line.strip() for line in card_input.strip().splitlines() if line.strip()]
 
     if not card_names:
         st.error("カード名を入力してください")
+        st.session_state.processing = False
         st.stop()
 
     shipping_rules = load_shipping_rules()
 
-    # Step 1: 正規化
-    if use_normalizer:
-        with st.status("カード名を正規化中...", expanded=True) as status:
-            try:
-                normalized = normalize_card_names(card_names)
-                changes = [
-                    (orig, norm)
-                    for orig, norm in zip(card_names, normalized)
-                    if orig != norm
-                ]
-                if changes:
-                    st.write("修正されたカード名:")
-                    for orig, norm in changes:
-                        st.write(f"  {orig} → {norm}")
-                    card_names = normalized
-                else:
-                    st.write("修正なし")
-
-                unknown = [n for n in card_names if n.startswith("UNKNOWN:")]
-                if unknown:
-                    st.warning(f"特定できなかったカード: {', '.join(unknown)}")
-                    card_names = [n for n in card_names if not n.startswith("UNKNOWN:")]
-
-                status.update(label="正規化完了", state="complete")
-            except Exception as e:
-                status.update(label="正規化エラー", state="error")
-                st.error(f"正規化エラー: {e}")
-                st.stop()
-
-    # Step 2: スクレイピング
+    # Step 1: スクレイピング
     with st.status(f"価格情報を取得中 (全{len(card_names)}枚)...", expanded=True) as status:
         progress = st.progress(0)
         price_data = {}
@@ -96,7 +152,7 @@ if st.button("最適化", type="primary", disabled=not card_input.strip()):
         st.error("価格情報が1件も取得できませんでした。カード名を確認してください。")
         st.stop()
 
-    # Step 3: 最適化
+    # Step 2: 最適化
     with st.status("最適化計算中...", expanded=False) as status:
         result = solve(price_data, shipping_rules)
         if result["status"] != 1:
@@ -106,7 +162,8 @@ if st.button("最適化", type="primary", disabled=not card_input.strip()):
 
     # --- 結果表示 ---
     st.divider()
-    st.header("最適購入プラン")
+    st.header("最適購入プラン", anchor="result")
+    st.html("<script>document.getElementById('result').scrollIntoView({behavior:'smooth'})</script>")
 
     col1, col2, col3 = st.columns(3)
     col1.metric("合計金額", f"¥{result['total_cost']:,}")
@@ -117,10 +174,13 @@ if st.button("最適化", type="primary", disabled=not card_input.strip()):
 
     for shop, items in result["plan"].items():
         details = result["shop_details"][shop]
+        shop_url = result.get("shop_urls", {}).get(shop)
+        shop_label = f"[{shop}]({shop_url})" if shop_url else shop
         with st.expander(
             f"{shop}  (小計: ¥{details['subtotal']:,} + 送料: ¥{details['shipping']:,} = ¥{details['total']:,})",
             expanded=True,
         ):
+            st.markdown(f"### {shop_label}")
             rows = [
                 {
                     "カード名": item["card"],
@@ -138,8 +198,10 @@ if st.button("最適化", type="primary", disabled=not card_input.strip()):
         "購入前に各ショップの販売ページで最新情報を確認してください。"
     )
 
-    # Step 4: アドバイス
-    if use_advisor:
+    st.session_state.processing = False
+
+    # Step 3: アドバイスボタン
+    if st.button("購入アドバイスを生成する (Claude CLI)"):
         with st.status("アドバイスを生成中...", expanded=True) as status:
             try:
                 advice = generate_advice(card_names, price_data, result, shipping_rules)
