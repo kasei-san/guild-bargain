@@ -1,8 +1,8 @@
 {
-  "晴れる屋": { "shipping": 180, "free_threshold": 30000 },
-  "カードショップBIGRED": { "shipping": 200, "free_threshold": null },
-  "トレトク": { "shipping": 200, "free_threshold": 5000 },
-  "カードラッシュ": { "shipping": 180, "free_threshold": 5000 },
-  "駿河屋": { "shipping": 440, "free_threshold": 1500 },
+  "晴れる屋": { "shipping": 180, "free_threshold": 30000, "url": "https://www.hareruyamtg.com/" },
+  "カードショップBIGRED": { "shipping": 200, "free_threshold": null, "url": "https://mtg.bigred.co.jp/" },
+  "トレトク": { "shipping": 200, "free_threshold": 5000, "url": "https://www.toretoku.jp/" },
+  "カードラッシュ": { "shipping": 180, "free_threshold": 5000, "url": "https://www.cardrush-mtg.jp/" },
+  "駿河屋": { "shipping": 440, "free_threshold": 1500, "url": "https://www.suruga-ya.jp/" },
   "_default": { "shipping": 400, "free_threshold": null }
 }

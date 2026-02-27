@@ -134,8 +134,9 @@ def solve(
                 if shop not in plan:
                     plan[shop] = []
                     shop_subtotals[shop] = 0
-                if shop not in shop_urls and offer.get("shop_url"):
-                    shop_urls[shop] = offer["shop_url"]
+                if shop not in shop_urls:
+                    rule = shipping_rules.get(shop, {})
+                    shop_urls[shop] = rule.get("url")
                 plan[shop].append(
                     {
                         "card": card,
