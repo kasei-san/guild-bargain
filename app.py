@@ -27,6 +27,20 @@ if "run_normalize" not in st.session_state:
     st.session_state.run_normalize = False
 if "run_optimize" not in st.session_state:
     st.session_state.run_optimize = False
+if "result" not in st.session_state:
+    st.session_state.result = None
+if "price_data" not in st.session_state:
+    st.session_state.price_data = None
+if "card_names_for_advice" not in st.session_state:
+    st.session_state.card_names_for_advice = None
+if "shipping_rules" not in st.session_state:
+    st.session_state.shipping_rules = None
+if "scroll_to_result" not in st.session_state:
+    st.session_state.scroll_to_result = False
+if "run_advice" not in st.session_state:
+    st.session_state.run_advice = False
+if "advice" not in st.session_state:
+    st.session_state.advice = None
 
 # --- 正規化完了通知 ---
 if st.session_state.normalize_done:
@@ -165,16 +179,31 @@ if st.session_state.run_optimize:
         result = solve(price_data, shipping_rules)
         if result["status"] != 1:
             st.error(f"最適解が見つかりませんでした (status: {result['status']})")
+            st.session_state.processing = False
             st.stop()
         status.update(label="最適化完了", state="complete")
 
-    # --- 結果表示 ---
+    # session_stateに結果を保存（前回のアドバイスはクリア）
+    st.session_state.advice = None
+    st.session_state.result = result
+    st.session_state.price_data = price_data
+    st.session_state.card_names_for_advice = card_names
+    st.session_state.shipping_rules = shipping_rules
+    st.session_state.scroll_to_result = True
+    st.session_state.processing = False
+
+# --- 結果表示（session_stateから） ---
+if st.session_state.result is not None:
+    result = st.session_state.result
+
     st.divider()
     st.header("最適購入プラン", anchor="result")
-    components.html(
-        "<script>window.parent.document.getElementById('result').scrollIntoView({behavior:'smooth'})</script>",
-        height=0,
-    )
+    if st.session_state.scroll_to_result:
+        st.session_state.scroll_to_result = False
+        components.html(
+            "<script>window.parent.document.getElementById('result').scrollIntoView({behavior:'smooth'})</script>",
+            height=0,
+        )
 
     col1, col2, col3 = st.columns(3)
     col1.metric("合計金額", f"¥{result['total_cost']:,}")
@@ -209,18 +238,29 @@ if st.session_state.run_optimize:
         "購入前に各ショップの販売ページで最新情報を確認してください。"
     )
 
-    st.session_state.processing = False
-
     # Step 3: アドバイスボタン
-    if st.button("購入アドバイスを生成する (Claude CLI)"):
-        with st.status("アドバイスを生成中...", expanded=True) as status:
-            try:
-                advice = generate_advice(card_names, price_data, result, shipping_rules)
-                status.update(label="アドバイス生成完了", state="complete")
-            except Exception as e:
-                st.error(f"Claude API エラー: {e}")
-                advice = None
+    if st.button("購入アドバイスを生成する (Claude CLI)", disabled=st.session_state.run_advice):
+        st.session_state.run_advice = True
+        st.rerun()
 
-        if advice:
-            st.subheader("購入アドバイス")
-            st.markdown(advice)
+    # アドバイス表示（生成済みの場合）
+    if st.session_state.advice:
+        st.subheader("購入アドバイス")
+        st.markdown(st.session_state.advice)
+
+# --- アドバイス生成処理 ---
+if st.session_state.run_advice:
+    st.session_state.run_advice = False
+    with st.status("アドバイスを生成中...", expanded=True) as status:
+        try:
+            advice = generate_advice(
+                st.session_state.card_names_for_advice,
+                st.session_state.price_data,
+                st.session_state.result,
+                st.session_state.shipping_rules,
+            )
+            st.session_state.advice = advice
+            status.update(label="アドバイス生成完了", state="complete")
+        except Exception as e:
+            st.error(f"Claude API エラー: {e}")
+    st.rerun()

@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## リポジトリ
+
+https://github.com/kasei-san/guild-bargain
+
 ## プロジェクト概要
 
 MTGカードの最安購入プランを提案するツール。Wisdom Guild から各ショップの価格をスクレイピングし、PuLP（ILPソルバー）で送料を含めた最適化計算を行い、最も安い買い方を提案する。CLIとStreamlit Web UIの両方で利用可能。
