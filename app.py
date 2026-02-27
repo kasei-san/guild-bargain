@@ -2,7 +2,6 @@
 
 import streamlit as st
 import streamlit.components.v1 as components
-import pandas as pd
 
 from cache import cleanup_expired
 from scraper import fetch_all_cards
@@ -11,6 +10,95 @@ from normalizer import _normalize_batch, BATCH_SIZE
 from advisor import generate_advice
 
 cleanup_expired()
+
+
+def _render_card_table(items: list[dict]) -> None:
+    """カード一覧をクリックでコピー可能なHTMLテーブルで表示する"""
+    rows_html = ""
+    for item in items:
+        name = item["card"]
+        price = f"&yen;{item['price']:,}"
+        card_set = item["set"]
+        condition = item["condition"]
+        rows_html += (
+            f"<tr>"
+            f'<td class="card-name" onclick="copyCardName(this, \'{name}\')">{name}</td>'
+            f"<td>{price}</td>"
+            f"<td>{card_set}</td>"
+            f"<td>{condition}</td>"
+            f"</tr>"
+        )
+
+    html = f"""
+    <style>
+    body {{
+        background: transparent;
+        color: #fafafa;
+        margin: 0;
+    }}
+    .card-table {{
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+        color: #fafafa;
+    }}
+    .card-table th, .card-table td {{
+        padding: 8px 12px;
+        border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+        text-align: left;
+    }}
+    .card-table th {{
+        color: rgba(200, 200, 200, 0.6);
+        font-weight: normal;
+        font-size: 13px;
+    }}
+    .card-name {{
+        cursor: pointer;
+    }}
+    .card-name:hover {{
+        text-decoration: underline;
+    }}
+    .copy-toast {{
+        position: fixed;
+        top: 8px;
+        right: 12px;
+        background: #262730;
+        color: #fafafa;
+        border: 1px solid rgba(128, 128, 128, 0.3);
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-size: 13px;
+        opacity: 0;
+        transition: opacity 0.3s;
+        pointer-events: none;
+    }}
+    </style>
+    <div id="copy-toast" class="copy-toast"></div>
+    <table class="card-table">
+        <thead><tr><th>カード名</th><th>価格</th><th>セット</th><th>状態</th></tr></thead>
+        <tbody>{rows_html}</tbody>
+    </table>
+    <script>
+    function copyCardName(el, name) {{
+        var ta = document.createElement('textarea');
+        ta.value = name;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+
+        var toast = document.getElementById('copy-toast');
+        toast.textContent = '📋 「' + name + '」をコピーしました';
+        toast.style.opacity = '1';
+        clearTimeout(window._toastTimer);
+        window._toastTimer = setTimeout(function() {{ toast.style.opacity = '0'; }}, 1500);
+    }}
+    </script>
+    """
+    components.html(html, height=len(items) * 41 + 45)
+
 
 st.set_page_config(page_title="MTG 最安購入オプティマイザー", layout="wide")
 st.title("MTG 最安購入オプティマイザー")
@@ -221,16 +309,7 @@ if st.session_state.result is not None:
             expanded=True,
         ):
             st.markdown(f"### {shop_label}")
-            rows = [
-                {
-                    "カード名": item["card"],
-                    "価格": f"¥{item['price']:,}",
-                    "セット": item["set"],
-                    "状態": item["condition"],
-                }
-                for item in items
-            ]
-            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+            _render_card_table(items)
 
     st.caption(
         "※ 価格データは Wisdom Guild 経由の情報です。"
