@@ -60,8 +60,9 @@ if st.button("最適化", type="primary", disabled=not card_input.strip()):
 
                 status.update(label="正規化完了", state="complete")
             except Exception as e:
-                status.update(label="正規化スキップ", state="error")
-                st.warning(f"正規化エラー: {e}")
+                status.update(label="正規化エラー", state="error")
+                st.error(f"正規化エラー: {e}")
+                st.stop()
 
     # Step 2: スクレイピング
     with st.status(f"価格情報を取得中 (全{len(card_names)}枚)...", expanded=True) as status:

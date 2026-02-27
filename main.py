@@ -57,7 +57,8 @@ def main():
                     print(f"  - {u}")
                 card_names = [n for n in card_names if not n.startswith("UNKNOWN:")]
         except Exception as e:
-            print(f"  正規化スキップ（エラー: {e}）")
+            print(f"\n正規化エラー: {e}", file=sys.stderr)
+            sys.exit(1)
         print()
 
     # Step 2: スクレイピング
