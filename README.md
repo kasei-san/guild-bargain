@@ -1,6 +1,6 @@
 # guild-bargain
 
-MTG カードの最安購入プランを提案する CLI ツール。
+MTG カードの最安購入プランを提案するツール。CLI と Web UI (Streamlit) の両方で使える。
 
 欲しいカードのリストを入力すると、[Wisdom Guild](https://wonder.wisdom-guild.net/) から各ショップの価格を取得し、**送料を考慮した最安の買い方**を計算する。
 
@@ -18,14 +18,24 @@ MTG カードの最安購入プランを提案する CLI ツール。
 ## セットアップ
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+./setup.sh
 ```
 
 ## 使い方
 
-### 1. 欲しいカードを `cards.txt` に書く
+### Web UI（Streamlit）
+
+```bash
+./run.sh
+```
+
+ブラウザが開くので、テキストエリアにカード名を1行1枚で入力して「最適化」ボタンを押す。
+
+サイドバーで Claude CLI によるカード名正規化・購入アドバイス生成の ON/OFF を切り替えられる。
+
+### CLI
+
+#### 1. 欲しいカードを `cards.txt` に書く
 
 ```
 最後の夜を一緒に
@@ -36,13 +46,13 @@ pip install -r requirements.txt
 
 1 行 1 カード名。日本語名・英語名どちらでも OK。
 
-### 2. 実行
+#### 2. 実行
 
 ```bash
 python3 main.py
 ```
 
-### 3. 出力例
+#### 3. 出力例
 
 ```
 == Step 1: カード名を正規化中 ==
@@ -75,7 +85,7 @@ python3 main.py
 （Claude CLI による代替プラン・コスト削減レコメンド）
 ```
 
-### オプション
+#### オプション
 
 | オプション | 説明 |
 |-----------|------|
@@ -111,12 +121,15 @@ python3 main.py
 
 ```
 guild-bargain/
-├── main.py            # エントリポイント
+├── app.py             # Web UI (Streamlit)
+├── main.py            # CLI エントリポイント
 ├── normalizer.py      # Claude CLI でカード名を正規化
 ├── scraper.py         # Wisdom Guild スクレイピング
 ├── solver.py          # PuLP による最適化ソルバー
 ├── advisor.py         # Claude CLI で説明・レコメンド生成
 ├── cards.txt          # 欲しいカードリスト
 ├── shops.json         # 送料ルール
-└── requirements.txt   # Python 依存パッケージ
+├── requirements.txt   # Python 依存パッケージ
+├── setup.sh           # セットアップスクリプト
+└── run.sh             # Web UI 起動スクリプト
 ```
