@@ -22,7 +22,11 @@ MTG カードの最安購入プランを提案するツール。CLI と Web UI (
 ## セットアップ
 
 ```bash
+# macOS / Linux
 ./setup.sh
+
+# Windows
+setup.bat
 ```
 
 ## 使い方
@@ -30,7 +34,11 @@ MTG カードの最安購入プランを提案するツール。CLI と Web UI (
 ### Web UI（Streamlit）
 
 ```bash
+# macOS / Linux
 ./run.sh
+
+# Windows
+run.bat
 ```
 
 ブラウザが開くので、テキストエリアにカード名を1行1枚で入力して「最適化」ボタンを押す。
